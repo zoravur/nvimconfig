@@ -35,7 +35,7 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Plugin specifications
 local plugins = {
-     {
+  {
      "neovim/nvim-lspconfig",
      dependencies = {
        "hrsh7th/cmp-nvim-lsp",
