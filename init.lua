@@ -1,0 +1,80 @@
+require("config")
+
+
+-- Basic settings
+-- vim.opt.number = true
+-- vim.opt.relativenumber = true
+-- vim.opt.expandtab = true
+-- vim.opt.shiftwidth = 2
+-- vim.opt.tabstop = 2
+-- vim.opt.smartindent = true
+-- 
+-- -- Plugin management with Packer
+-- vim.cmd [[packadd packer.nvim]]
+-- return require('packer').startup(function(use)
+--   use 'wbthomason/packer.nvim'
+--   
+--   -- Fast LSP
+--   use 'neovim/nvim-lspconfig'
+--   use 'hrsh7th/nvim-cmp'
+--   use 'hrsh7th/cmp-nvim-lsp'
+--   
+--   -- Syntax highlighting
+--   use {
+--     'nvim-treesitter/nvim-treesitter',
+--     run = ':TSUpdate'
+--   }
+--   
+--   -- Terminal integration
+--   use {"akinsho/toggleterm.nvim", tag = '*'}
+--   
+--   -- Code jumping
+--   use 'nvim-lua/plenary.nvim'
+--   use {
+--     'nvim-telescope/telescope.nvim', tag = '0.1.2',
+--     requires = { {'nvim-lua/plenary.nvim'} }
+--   }
+-- end)
+-- 
+-- -- LSP Configuration
+-- local lspconfig = require('lspconfig')
+-- lspconfig.clangd.setup{}
+-- 
+-- -- Completion setup
+-- local cmp = require'cmp'
+-- cmp.setup({
+--   sources = {
+--     { name = 'nvim_lsp' },
+--   },
+--   mapping = cmp.mapping.preset.insert({
+--     ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+--     ['<C-f>'] = cmp.mapping.scroll_docs(4),
+--     ['<C-Space>'] = cmp.mapping.complete(),
+--     ['<CR>'] = cmp.mapping.confirm({ select = true }),
+--   }),
+-- })
+-- 
+-- -- Treesitter configuration
+-- require'nvim-treesitter.configs'.setup {
+--   ensure_installed = { "cpp" },
+--   highlight = {
+--     enable = true,
+--   },
+-- }
+-- 
+-- -- Terminal configuration
+-- require("toggleterm").setup{
+--   open_mapping = [[<c-\>]],
+--   direction = 'float',
+-- }
+-- 
+-- -- Telescope (for code jumping and file navigation)
+-- local builtin = require('telescope.builtin')
+-- vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
+-- vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
+-- vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
+-- vim.keymap.set('n', 'gd', builtin.lsp_definitions, {})
+-- vim.keymap.set('n', 'gr', builtin.lsp_references, {})
+-- 
+-- -- Key mapping for quick command execution
+-- vim.api.nvim_set_keymap('n', '<leader>r', ':ToggleTerm<CR>', {noremap = true})
