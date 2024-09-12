@@ -37,6 +37,7 @@ vim.opt.rtp:prepend(lazypath)
 local plugins = {
   {
      "neovim/nvim-lspconfig",
+     ft = {"cpp"},
      dependencies = {
        "hrsh7th/cmp-nvim-lsp",
        "hrsh7th/nvim-cmp",

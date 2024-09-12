@@ -10,7 +10,7 @@ int main() {
     while (cin >> i) v.push_back(i);
 
     std::sort(v.begin(), v.end());
-    
+
 
     for (auto& i : v) {
         cout << i << " ";
