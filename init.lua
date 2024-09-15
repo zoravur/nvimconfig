@@ -10,6 +10,9 @@ vim.opt.expandtab = true
 vim.opt.shiftwidth = 2
 vim.opt.tabstop = 2
 
+vim.opt.number = true
+vim.opt.relativenumber = true
+
 -- Set indentation for specific file types
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "python", "cpp", "c", "go" },
