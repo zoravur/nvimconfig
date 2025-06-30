@@ -1,3 +1,7 @@
+-- Set space as the leader key
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
 -- Enable basic Vim features
 vim.cmd('syntax enable')
 vim.cmd('filetype plugin indent on')
@@ -175,15 +179,32 @@ local plugins = {
       }
     end
   },
-    {
-      'nvimdev/zephyr-nvim',
-      lazy = false,
-      priority = 1000,
-      config = function() 
-        vim.cmd[[colorscheme zephyr]]
-      end
-    },
+    -- {
+    --   'nvimdev/zephyr-nvim',
+    --   lazy = false,
+    --   priority = 1000,
+    --   config = function() 
+    --     vim.cmd[[colorscheme zephyr]]
+    --   end
+    -- },
+  -- Using Lazy
+  {
+    "navarasu/onedark.nvim",
+    priority = 1000, -- make sure to load this before all the other start plugins
+    config = function()
+      require('onedark').setup {
+        style = 'darker'
+      }
+      -- Enable theme
+      require('onedark').load()
+    end
+  }
 }
 
 -- Setup lazy.nvim
 require("lazy").setup(plugins)
+
+vim.keymap.set('n', '<leader>cd', function()
+  vim.diagnostic.open_float(nil, { focus = false })
+end, { desc = "Show diagnostics under cursor" })
+
