@@ -232,58 +232,121 @@ end, { desc = "Request Groq completion" })
 --   end
 -- end, { expr = true, desc = "Accept Groq ghost or tab" })
 -- Optional toggle: split “after-cursor” onto its own new line
-local split_after = (M.split_after == true)
+-- local split_after = (M.split_after == true)
+-- 
+-- vim.keymap.set({ "i", "n" }, "<Tab>", function()
+--   if _G.groq_current_completion == "" then
+--     return api.nvim_replace_termcodes("<Tab>", true, true, true)
+--   end
+-- 
+--   local row, col = unpack(api.nvim_win_get_cursor(0))
+--   local zero_row = row - 1
+--   local cur_line = api.nvim_get_current_line()
+--   local before = cur_line:sub(1, col)
+--   local after  = cur_line:sub(col + 1)
+-- 
+--   local comp = _G.groq_current_completion
+--   _G.groq_current_completion = ""
+--   api.nvim_buf_clear_namespace(0, ns, 0, -1)
+-- 
+--   local lines = vim.split(comp, "\n", { plain = true })
+--   if #lines == 0 then return "" end
+-- 
+--   -- stitch current line into multiple lines:
+--   -- line 1: before + first completion line
+--   local out = {}
+--   out[1] = before .. lines[1]
+-- 
+--   -- middle completion lines (as-is)
+--   for i = 2, #lines - 1 do
+--     table.insert(out, lines[i])
+--   end
+-- 
+--   -- last completion line + after-cursor (or split-after onto its own new line)
+--   if #lines > 1 then
+--     local last = lines[#lines]
+--     if split_after and after ~= "" then
+--       table.insert(out, last)
+--       table.insert(out, after)
+--     else
+--       table.insert(out, last .. after)
+--     end
+--   else
+--     -- single-line completion
+--     if split_after and after ~= "" and lines[1] ~= "" then
+--       out[1] = out[1]
+--       table.insert(out, after)
+--     else
+--       out[1] = out[1] .. after
+--     end
+--   end
+-- 
+--   -- Replace current line with `out` (safe, atomic)
+--   vim.schedule(function()
+--     api.nvim_buf_set_text(0, zero_row, 0, zero_row, #cur_line, out)
+--   end)
+-- 
+--   return ""
+-- end, { expr = true, desc = "Accept Groq ghost or Tab" })
+
+-- Optional toggle: put tail ("after") on its own line
+local split_after = (M and M.split_after == true)
 
 vim.keymap.set({ "i", "n" }, "<Tab>", function()
   if _G.groq_current_completion == "" then
-    return api.nvim_replace_termcodes("<Tab>", true, true, true)
+    return vim.api.nvim_replace_termcodes("<Tab>", true, true, true)
   end
 
-  local row, col = unpack(api.nvim_win_get_cursor(0))
-  local zero_row = row - 1
-  local cur_line = api.nvim_get_current_line()
-  local before = cur_line:sub(1, col)
-  local after  = cur_line:sub(col + 1)
+  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  local zrow     = row - 1
+  local cur_line = vim.api.nvim_get_current_line()
+  local before   = cur_line:sub(1, col)
+  local after    = cur_line:sub(col + 1)
 
   local comp = _G.groq_current_completion
   _G.groq_current_completion = ""
-  api.nvim_buf_clear_namespace(0, ns, 0, -1)
+  vim.api.nvim_buf_clear_namespace(0, ns, 0, -1)
 
-  local lines = vim.split(comp, "\n", { plain = true })
-  if #lines == 0 then return "" end
+  local parts = vim.split(comp, "\n", { plain = true })
+  if #parts == 0 then return "" end
 
-  -- stitch current line into multiple lines:
-  -- line 1: before + first completion line
+  -- Build replacement lines
   local out = {}
-  out[1] = before .. lines[1]
+  out[1] = before .. parts[1]
+  for i = 2, #parts - 1 do table.insert(out, parts[i]) end
 
-  -- middle completion lines (as-is)
-  for i = 2, #lines - 1 do
-    table.insert(out, lines[i])
-  end
+  local cursor_row = zrow     -- 0-index
+  local cursor_col = 0        -- set below
 
-  -- last completion line + after-cursor (or split-after onto its own new line)
-  if #lines > 1 then
-    local last = lines[#lines]
+  if #parts > 1 then
+    local last = parts[#parts]
     if split_after and after ~= "" then
-      table.insert(out, last)
-      table.insert(out, after)
+      table.insert(out, last)     -- completion ends here
+      table.insert(out, after)    -- tail on its own line
+      cursor_row = zrow + (#out - 1) - 1  -- second-to-last line
+      cursor_col = #last
     else
-      table.insert(out, last .. after)
+      table.insert(out, last .. after)    -- tail appended
+      cursor_row = zrow + (#out - 1)      -- last line
+      cursor_col = #last                  -- caret before tail
     end
   else
     -- single-line completion
-    if split_after and after ~= "" and lines[1] ~= "" then
-      out[1] = out[1]
+    if split_after and after ~= "" and parts[1] ~= "" then
       table.insert(out, after)
+      cursor_row = zrow                   -- first of out
+      cursor_col = #out[1]
     else
       out[1] = out[1] .. after
+      cursor_row = zrow
+      cursor_col = #before + #parts[1]
     end
   end
 
-  -- Replace current line with `out` (safe, atomic)
+  -- Apply edit, then move cursor
   vim.schedule(function()
-    api.nvim_buf_set_text(0, zero_row, 0, zero_row, #cur_line, out)
+    vim.api.nvim_buf_set_text(0, zrow, 0, zrow, #cur_line, out)
+    vim.api.nvim_win_set_cursor(0, { cursor_row + 1, cursor_col })
   end)
 
   return ""
