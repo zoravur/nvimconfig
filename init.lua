@@ -327,6 +327,13 @@ local plugins = {
       require('onedark').load()
     end,
   },
+  {
+    "nvim-lua/plenary.nvim",
+    lazy = true,
+    config = function()
+      require("plugins.groq")
+    end,
+  }
 }
 
 require("lazy").setup(plugins)
