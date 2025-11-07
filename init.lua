@@ -104,24 +104,24 @@ local plugins = {
         },
       })
 
-      lspconfig.rust_analyzer.setup({
-        capabilities = capabilities,
-        settings = {
-          ['rust-analyzer'] = {
-            checkOnSave = { command = "clippy" },
-            cargo = { allFeatures = true },
-            procMacro = { enable = true },
-          }
-        },
-        on_attach = function(client, bufnr)
-          if client.server_capabilities.documentFormattingProvider then
-            vim.api.nvim_create_autocmd("BufWritePre", {
-              buffer = bufnr,
-              callback = function() vim.lsp.buf.format({ async = false }) end,
-            })
-          end
-        end,
-      })
+      -- lspconfig.rust_analyzer.setup({
+      --   capabilities = capabilities,
+      --   settings = {
+      --     ['rust-analyzer'] = {
+      --       checkOnSave = { command = "clippy" },
+      --       cargo = { allFeatures = true },
+      --       procMacro = { enable = true },
+      --     }
+      --   },
+      --   on_attach = function(client, bufnr)
+      --     if client.server_capabilities.documentFormattingProvider then
+      --       vim.api.nvim_create_autocmd("BufWritePre", {
+      --         buffer = bufnr,
+      --         callback = function() vim.lsp.buf.format({ async = false }) end,
+      --       })
+      --     end
+      --   end,
+      -- })
 
       lspconfig.templ.setup({
         capabilities = capabilities,
