@@ -37,6 +37,10 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Plugin specifications
 local plugins = {
+
+  ---------------------------------------------------------------------------
+  -- LSP (new-style config, no deprecated API)
+  ---------------------------------------------------------------------------
   {
     "neovim/nvim-lspconfig",
     ft = { "cpp", "go", "lua", "templ", "python", "rust" },
@@ -46,10 +50,43 @@ local plugins = {
       "L3MON4D3/LuaSnip",
     },
     config = function()
-      local lspconfig = require('lspconfig')
-      local capabilities = require('cmp_nvim_lsp').default_capabilities()
+      -- Load lspconfig ONCE so server definitions register with vim.lsp.config
+      require("lspconfig")
 
-      lspconfig.clangd.setup({
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+      -- Native root finder
+      local function root(patterns)
+        return vim.fs.root(0, patterns)
+      end
+
+      ---------------------------------------------------------------------
+      -- Helper: merge opts into built-in server config table
+      -- (because vim.lsp.config[server] is NOT a function on 0.11)
+      ---------------------------------------------------------------------
+      local function setup(server, opts)
+        local base = vim.lsp.config[server]
+        if type(base) ~= "table" then
+          vim.notify("No LSP config found for " .. server, vim.log.levels.ERROR)
+          return
+        end
+
+        -- Deep merge our overrides into the base config table
+        local cfg = vim.tbl_deep_extend("force", base, opts)
+
+        -- Autostart per filetype
+        vim.api.nvim_create_autocmd("FileType", {
+          pattern = opts.filetypes or base.filetypes,
+          callback = function(args)
+            vim.lsp.start(cfg, { bufnr = args.buf })
+          end,
+        })
+      end
+
+      ---------------------------------------------------------------------
+      -- clangd
+      ---------------------------------------------------------------------
+      setup("clangd", {
         capabilities = capabilities,
         cmd = {
           "clangd",
@@ -60,18 +97,25 @@ local plugins = {
           "--pch-storage=memory",
         },
         filetypes = { "c", "cpp", "objc", "objcpp" },
-        root_dir = lspconfig.util.root_pattern(
-          '.clangd', '.clang-tidy', '.clang-format',
-          'compile_commands.json', 'compile_flags.txt',
-          'configure.ac', '.git'
-        ),
+        root_dir = root({
+          ".clangd",
+          ".clang-tidy",
+          ".clang-format",
+          "compile_commands.json",
+          "compile_flags.txt",
+          "configure.ac",
+          ".git",
+        }),
       })
 
-      lspconfig.gopls.setup({
+      ---------------------------------------------------------------------
+      -- gopls
+      ---------------------------------------------------------------------
+      setup("gopls", {
         capabilities = capabilities,
         cmd = { "gopls", "serve" },
         filetypes = { "go", "gomod" },
-        root_dir = lspconfig.util.root_pattern("go.work", "go.mod", ".git"),
+        root_dir = root({ "go.work", "go.mod", ".git" }),
         settings = {
           gopls = {
             analyses = { unusedparams = true },
@@ -82,19 +126,25 @@ local plugins = {
           if client.server_capabilities.documentFormattingProvider then
             vim.api.nvim_create_autocmd("BufWritePre", {
               buffer = bufnr,
-              callback = function() vim.lsp.buf.format({ async = false }) end,
+              callback = function()
+                vim.lsp.buf.format({ async = false })
+              end,
             })
           end
         end,
       })
 
-      lspconfig.lua_ls.setup({
+      ---------------------------------------------------------------------
+      -- lua_ls
+      ---------------------------------------------------------------------
+      setup("lua_ls", {
         capabilities = capabilities,
         cmd = { vim.fn.expand("/home/$USER/Downloads/luals/bin/lua-language-server") },
+        root_dir = root({ ".git", ".luarc.json", ".luacheckrc" }),
         settings = {
           Lua = {
-            runtime = { version = 'LuaJIT' },
-            diagnostics = { globals = { 'vim' } },
+            runtime = { version = "LuaJIT" },
+            diagnostics = { globals = { "vim" } },
             workspace = {
               library = vim.api.nvim_get_runtime_file("", true),
               checkThirdParty = false,
@@ -104,52 +154,69 @@ local plugins = {
         },
       })
 
-      -- lspconfig.rust_analyzer.setup({
-      --   capabilities = capabilities,
-      --   settings = {
-      --     ['rust-analyzer'] = {
-      --       checkOnSave = { command = "clippy" },
-      --       cargo = { allFeatures = true },
-      --       procMacro = { enable = true },
-      --     }
-      --   },
-      --   on_attach = function(client, bufnr)
-      --     if client.server_capabilities.documentFormattingProvider then
-      --       vim.api.nvim_create_autocmd("BufWritePre", {
-      --         buffer = bufnr,
-      --         callback = function() vim.lsp.buf.format({ async = false }) end,
-      --       })
-      --     end
-      --   end,
-      -- })
-
-      lspconfig.templ.setup({
+      ---------------------------------------------------------------------
+      -- rust_analyzer (no rust-tools)
+      ---------------------------------------------------------------------
+      setup("rust_analyzer", {
         capabilities = capabilities,
-        filetypes = { "templ" },
-      })
-
-      lspconfig.pyright.setup({
-        capabilities = capabilities,
-      })
-
-      vim.api.nvim_create_autocmd('LspAttach', {
-        group = vim.api.nvim_create_augroup('UserLspConfig', {}),
-        callback = function(ev)
-          local opts = { buffer = ev.buf }
-          vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
-          vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-          vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
-          vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
-          vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
-          vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
-          vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
-          vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+        root_dir = root({ "Cargo.toml", ".git" }),
+        settings = {
+          ["rust-analyzer"] = {
+            checkOnSave = { command = "clippy" },
+            cargo = { allFeatures = true },
+            procMacro = { enable = true },
+          },
+        },
+        on_attach = function(_, bufnr)
+          vim.api.nvim_create_autocmd("BufWritePre", {
+            buffer = bufnr,
+            callback = function() vim.lsp.buf.format({ async = false }) end,
+          })
+          vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
         end,
       })
-    end,
+
+      ---------------------------------------------------------------------
+      -- templ
+      ---------------------------------------------------------------------
+      setup("templ", {
+        capabilities = capabilities,
+        filetypes = { "templ" },
+        root_dir = root({ "go.mod", ".git" }),
+      })
+
+      ---------------------------------------------------------------------
+      -- pyright
+      ---------------------------------------------------------------------
+      setup("pyright", {
+        capabilities = capabilities,
+        root_dir = root({ "pyproject.toml", "setup.py", ".git" }),
+      })
+
+      ---------------------------------------------------------------------
+      -- Global LSP keymaps
+      ---------------------------------------------------------------------
+      vim.api.nvim_create_autocmd("LspAttach", {
+        group = vim.api.nvim_create_augroup("UserLspConfig", {}),
+        callback = function(ev)
+          local opts = { buffer = ev.buf }
+          vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+          vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+          vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+          vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+          vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
+          vim.keymap.set("n", "<space>D", vim.lsp.buf.type_definition, opts)
+          vim.keymap.set("n", "<space>rn", vim.lsp.buf.rename, opts)
+          vim.keymap.set({ "n", "v" }, "<space>ca", vim.lsp.buf.code_action, opts)
+          vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+        end,
+      })
+    end
   },
 
+  ---------------------------------------------------------------------------
+  -- CMP
+  ---------------------------------------------------------------------------
   {
     "hrsh7th/nvim-cmp",
     dependencies = {
@@ -189,6 +256,9 @@ local plugins = {
     end,
   },
 
+  ---------------------------------------------------------------------------
+  -- Treesitter
+  ---------------------------------------------------------------------------
   {
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
@@ -205,6 +275,9 @@ local plugins = {
     end
   },
 
+  ---------------------------------------------------------------------------
+  -- Telescope
+  ---------------------------------------------------------------------------
   {
     "nvim-telescope/telescope.nvim",
     branch = "0.1.x",
@@ -264,6 +337,9 @@ local plugins = {
     end,
   },
 
+  ---------------------------------------------------------------------------
+  -- nvim-tree
+  ---------------------------------------------------------------------------
   {
     "nvim-tree/nvim-tree.lua",
     version = "*",
@@ -281,6 +357,9 @@ local plugins = {
     end,
   },
 
+  ---------------------------------------------------------------------------
+  -- vimtex
+  ---------------------------------------------------------------------------
   {
     'lervag/vimtex',
     config = function()
@@ -289,36 +368,9 @@ local plugins = {
     end,
   },
 
-  {
-    'simrat39/rust-tools.nvim',
-    ft = "rust",
-    dependencies = {
-      'neovim/nvim-lspconfig',
-      'nvim-lua/plenary.nvim',
-      'mfussenegger/nvim-dap',
-    },
-    config = function()
-      require('rust-tools').setup({
-        server = {
-          capabilities = require('cmp_nvim_lsp').default_capabilities(),
-          on_attach = function(_, bufnr)
-            vim.api.nvim_create_autocmd("BufWritePre", {
-              buffer = bufnr,
-              callback = function() vim.lsp.buf.format({ async = false }) end,
-            })
-          end,
-          settings = {
-            ['rust-analyzer'] = {
-              checkOnSave = { command = "clippy" },
-              cargo = { allFeatures = true },
-              procMacro = { enable = true },
-            },
-          },
-        },
-      })
-    end,
-  },
-
+  ---------------------------------------------------------------------------
+  -- Onedark theme
+  ---------------------------------------------------------------------------
   {
     "navarasu/onedark.nvim",
     priority = 1000,
@@ -327,17 +379,23 @@ local plugins = {
       require('onedark').load()
     end,
   },
+
+  ---------------------------------------------------------------------------
+  -- Plenary with your custom plugin
+  ---------------------------------------------------------------------------
   {
     "nvim-lua/plenary.nvim",
     lazy = true,
     config = function()
       require("plugins.groq")
     end,
-  }
+  },
 }
 
+-- Startup lazy.nvim
 require("lazy").setup(plugins)
 
+-- Diagnostics float
 vim.keymap.set('n', '<leader>cd', function()
   vim.diagnostic.open_float(nil, { focus = false })
 end, { desc = "Show diagnostics under cursor" })
