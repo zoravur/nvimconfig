@@ -162,7 +162,7 @@ local plugins = {
         root_dir = root({ "Cargo.toml", ".git" }),
         settings = {
           ["rust-analyzer"] = {
-            checkOnSave = { command = "clippy" },
+            checkOnSave = true,
             cargo = { allFeatures = true },
             procMacro = { enable = true },
           },
