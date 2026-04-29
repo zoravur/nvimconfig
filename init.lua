@@ -14,7 +14,7 @@ vim.opt.tabstop = 2
 vim.opt.number = true
 vim.opt.relativenumber = true
 
-vim.cmd.colorscheme("ziggy")
+-- vim.cmd.colorscheme("dim")
 
 -- Set indentation for specific file types
 vim.api.nvim_create_autocmd("FileType", {
@@ -371,14 +371,15 @@ local plugins = {
   ---------------------------------------------------------------------------
   -- Onedark theme
   ---------------------------------------------------------------------------
-  {
-    "navarasu/onedark.nvim",
-    priority = 1000,
-    config = function()
-      require('onedark').setup({ style = 'darker' })
-      require('onedark').load()
-    end,
-  },
+  -- {
+  --   "navarasu/onedark.nvim",
+  --   priority = 1000,
+  --   config = function()
+  --     require('onedark').setup({ style = 'darker' })
+  --     require('onedark').load()
+  --   end,
+  -- },
+  { "catppuccin/nvim", name = "catppuccin", priority = 1000 },
 
   ---------------------------------------------------------------------------
   -- Plenary with your custom plugin
@@ -394,6 +395,12 @@ local plugins = {
 
 -- Startup lazy.nvim
 require("lazy").setup(plugins)
+
+require("catppuccin").setup({
+  flavour = "mocha",
+})
+
+vim.cmd.colorscheme("catppuccin-nvim")
 
 -- Diagnostics float
 vim.keymap.set('n', '<leader>cd', function()
